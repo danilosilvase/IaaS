@@ -1,0 +1,16 @@
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command
+  when: "'master' in group_names"
+
+- name: Copy join command to local file
+  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+  when: "'master' in group_names"
+
+- name: Copy the join command to server location
+  copy: src=join-command dest=/tmp/join-command.sh mode=0777
+  when: "'workers' in group_names"
+
+- name: Join the node to cluster
+  command: sh /tmp/join-command.sh
+  when: "'workers' in group_names"

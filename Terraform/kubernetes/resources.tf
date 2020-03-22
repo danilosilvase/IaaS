@@ -7,7 +7,7 @@ resource "aws_key_pair" "demo_key" {
 resource "aws_instance" "master" {
   count = "1"
   ami           = "${var.ami}"
-  instance_type = "${var.instance}"
+  instance_type = "t2.medium"
   key_name      = "${aws_key_pair.demo_key.key_name}"
 
   vpc_security_group_ids = [
@@ -47,18 +47,34 @@ resource "aws_instance" "master" {
     command = "echo [workers] | tee -a cluster.ini;"
   }
 
-  # This is where we configure the instance with ansible-playbook
-  # Install master
   provisioner "local-exec" {
-    command = <<EOT
-      sleep 30;
-	  >master.ini;
-	  echo "[master]" | tee -a master.ini;
-	  echo "${aws_instance.master[count.index].public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key}" | tee -a master.ini; 
-	  ansible-playbook -u ${var.ansible_user} --private-key ${var.private_key} -i master.ini ../../Ansible/deploy_docker.yml
-    EOT
+    command = "sleep 40;"
   }
-  
+
+  provisioner "local-exec" {      
+    command = ">master.ini;"
+  }
+
+  provisioner "local-exec" {      
+    command = "echo [master] | tee -a master.ini;"
+  }
+
+  provisioner "local-exec" {      
+    command = "echo ${aws_instance.master[count.index].public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key} | tee -a master.ini;"
+  }
+
+  provisioner "local-exec" {      
+    command = "export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u ${var.ansible_user} --private-key ${var.private_key} -i master.ini ../../Ansible/deploy_docker.yml"
+  }
+
+  provisioner "local-exec" {
+    command = "sleep 180;"
+  }
+
+  provisioner "local-exec" {      
+    command = "export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u ${var.ansible_user} --private-key ${var.private_key} -i cluster.ini ../../Ansible/deploy_kubernetes.yml"
+  }
+
   tags = {
     Name     = "master-${count.index +1 }"
     Batch    = "7AM"
@@ -77,7 +93,7 @@ resource "aws_instance" "worker" {
     "${aws_security_group.ssh.id}",
     "${aws_security_group.egress-tls.id}",
     "${aws_security_group.ping-ICMP.id}",
-	"${aws_security_group.web_server.id}"
+	  "${aws_security_group.web_server.id}"
   ]
 
   connection {
@@ -86,8 +102,7 @@ resource "aws_instance" "worker" {
     host     = "${self.public_ip}"
   }
 
-  #user_data = "${file("../templates/install_jenkins.sh")}"
-
+  
   # Ansible requires Python to be installed on the remote machine as well as the local machine.
   provisioner "remote-exec" {
     inline = ["sudo apt-get -qq install python -y"]
@@ -96,15 +111,27 @@ resource "aws_instance" "worker" {
     # This is where we configure the instance with ansible-playbook
   # Install worker
   provisioner "local-exec" {
-    command = <<EOT
-      sleep 30;
-	  >worker.ini;
-	  echo "[worker]" | tee -a worker.ini;
-	  echo "${self.public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key}" | tee -a worker.ini;
-    echo "${self.public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key}" | tee -a cluster.ini;
-      export ANSIBLE_HOST_KEY_CHECKING=False;
-	  ansible-playbook -u ${var.ansible_user} --private-key ${var.private_key} -i worker.ini ../../Ansible/deploy_docker.yml
-    EOT
+    command = "sleep 60;"
+  }
+
+  provisioner "local-exec" {
+    command = ">worker.ini;"
+  }
+
+  provisioner "local-exec" {
+    command = "echo [worker] | tee -a worker.ini;"
+  }
+
+  provisioner "local-exec" {
+    command = "echo ${self.public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key} | tee -a worker.ini;"
+  }
+
+  provisioner "local-exec" {
+    command = "echo ${self.public_ip} ansible_user=${var.ansible_user} ansible_ssh_private_key_file=${var.private_key} | tee -a cluster.ini;"
+  }
+
+  provisioner "local-exec" {
+    command = "export ANSIBLE_HOST_KEY_CHECKING=False; ansible-playbook -u ${var.ansible_user} --private-key ${var.private_key} -i worker.ini ../../Ansible/deploy_docker.yml"
   }
 
   tags = {

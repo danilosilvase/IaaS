@@ -1,0 +1,12 @@
+- name: Disable Swap
+  include: disable_swap.yml
+
+- name: Kube Dependences
+  include: kube-dependencies.yml
+
+- name: Configure Master
+  include: master.yml
+  when: "'master' in group_names"
+
+- name: Configure Workers
+  include: workers.yml

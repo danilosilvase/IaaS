@@ -15,7 +15,7 @@ resource "aws_instance" "master" {
     "${aws_security_group.ssh.id}",
     "${aws_security_group.egress-tls.id}",
     "${aws_security_group.ping-ICMP.id}",
-    "${aws_security_group.kubernetes.id}",
+    "${aws_security_group.kubernetes.id}"
   ]
 
   connection {
@@ -89,11 +89,10 @@ resource "aws_instance" "worker" {
   key_name      = "${aws_key_pair.demo_key.key_name}"
 
   vpc_security_group_ids = [
-    "${aws_security_group.web.id}",
     "${aws_security_group.ssh.id}",
     "${aws_security_group.egress-tls.id}",
     "${aws_security_group.ping-ICMP.id}",
-	  "${aws_security_group.web_server.id}"
+	  "${aws_security_group.kubernetes.id}"
   ]
 
   connection {
@@ -171,10 +170,10 @@ resource "aws_security_group" "kubernetes" {
   #vpc_id      = "${aws_vpc.my-vpc.id}"
 
   ingress {
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["172.31.0.0/16"]
   }
 
   tags = {
@@ -249,5 +248,31 @@ resource "aws_security_group" "web_server" {
 
   tags = {
     Name = "web_server-example-default-vpc"
+  }
+}
+
+resource "aws_vpc" "mainvpc" {
+  cidr_block = "172.31.0.0/16"
+}
+
+resource "aws_default_network_acl" "default" {
+  default_network_acl_id = aws_vpc.mainvpc.default_network_acl_id
+
+  ingress {
+    protocol   = -1
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = aws_vpc.mainvpc.cidr_block
+    from_port  = 0
+    to_port    = 0
+  }
+
+  egress {
+    protocol   = -1
+    rule_no    = 100
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 0
+    to_port    = 0
   }
 }

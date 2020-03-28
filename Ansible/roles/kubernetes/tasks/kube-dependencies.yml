@@ -25,13 +25,43 @@
       - kubeadm 
       - kubectl
 
-- name: Configure node ip
-  lineinfile:
-    path: /etc/default/kubelet
-    line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
+#- name: Configure node ip
+#  lineinfile:
+#    path: /etc/default/kubelet
+#    line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
 
 - name: Restart kubelet
   service:
     name: kubelet
     daemon_reload: yes
     state: restarted
+
+- name: detect docker's cgroup-driver
+  shell: docker info 2>/dev/null |grep -i cgroup | cut -d":" -f2 | tr -d " "
+  register: docker_cgroup_driver
+  
+- replace:
+    path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    regexp: '--cgroup-driver=(systemd|cgroupfs)'
+    replace: '--cgroup-driver={{docker_cgroup_driver.stdout}}'
+    backup: no
+
+- name: modprobe
+  command: modprobe br_netfilter
+
+#- name: Add netbridge config ip6
+#  lineinfile:
+#    path: /etc/sysctl.d/k8s.conf
+#    line: 'net.bridge.bridge-nf-call-ip6tables = 1'
+#    state: present
+#    create: yes
+
+- name: Add netbridge config ip4
+  lineinfile:
+    path: /etc/sysctl.d/k8s.conf
+    line: 'net.bridge.bridge-nf-call-iptables = 1'
+    state: present
+    create: yes
+
+- name: update sysctl
+  command: sysctl --system

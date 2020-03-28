@@ -15,7 +15,7 @@ resource "aws_instance" "master" {
     "${aws_security_group.ssh.id}",
     "${aws_security_group.egress-tls.id}",
     "${aws_security_group.ping-ICMP.id}",
-	"${aws_security_group.web_server.id}"
+    "${aws_security_group.kubernetes.id}",
   ]
 
   connection {
@@ -162,6 +162,23 @@ resource "aws_security_group" "web" {
 
   tags = {
     Name = "web-example-default-vpc"
+  }
+}
+
+resource "aws_security_group" "kubernetes" {
+  name        = "default-kubernetes"
+  description = "Security group for web that allows web traffic from internet"
+  #vpc_id      = "${aws_vpc.my-vpc.id}"
+
+  ingress {
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "kubernetes-default-vpc"
   }
 }
 

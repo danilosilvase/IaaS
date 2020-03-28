@@ -1,16 +1,5 @@
-- name: initialize the cluster
-  become: yes
-  become_user: root
-  shell: kubeadm init --pod-network-cidr=10.244.0.0/16 >> cluster_initialized.txt
-  args:
-    chdir: $HOME
-    reates: cluster_initialized.txt
-
 - name: Initialize the Kubernetes cluster using kubeadm
-  command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16 >> cluster_initialized.txt
-  args:
-    chdir: $HOME
-    reates: cluster_initialized.txt
+  command: "kubeadm init --pod-network-cidr=10.244.0.0/16"
 
 - name: create .kube directory
   become: yes
@@ -30,7 +19,7 @@
 - name: install Pod network
   become: yes
   become_user: ubuntu
-  shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/a70459be0084506e4ec919aa1c114638878db11b/Documentation/kube-flannel.yml >> pod_network_setup.txt
-  args:
-    chdir: $HOME
-    creates: pod_network_setup.txt
+  shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+#  args:
+#    chdir: $HOME
+#    creates: pod_network_setup.txt

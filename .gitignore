@@ -2,6 +2,7 @@
 **/.terraform/*
 
 Terraform/**/.terraform/
+Terraform/**/*.ini
 
 # .tfstate files
 *.tfstate

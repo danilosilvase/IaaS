@@ -1,0 +1,1 @@
+kubeadm join 172.31.34.235:6443 --token jrft80.bfsnzoolhsrnr136     --discovery-token-ca-cert-hash sha256:59b351a004b68c16fb0e34123553ed75ef2b77dec16c8548b31077105b8eeaf1 
